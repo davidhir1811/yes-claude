@@ -22,7 +22,7 @@ credentials.json
 build/
 dist/
 out/
-lib/
+firebase/functions/lib/
 debug-info/
 
 # Dependencies (add language-specific patterns as needed)
