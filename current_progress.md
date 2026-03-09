@@ -1,32 +1,33 @@
 # Current Progress
 
 ## Last Updated
-2026-03-09
+2026-03-10
 
 ## What's Done
 - Design brainstorming complete (with Gemini consultation)
-- Design document written: `docs/plans/2026-03-08-yes-claude-design.md`
-- Jira project created (YES) with epic and 8 tasks
-- CLAUDE.md updated with architecture and tech stack
-
-## What's In Progress
-- Nothing currently in progress — ready to start implementation
+- Design document: `docs/plans/2026-03-08-yes-claude-design.md`
+- Implementation plan: `docs/plans/2026-03-09-yes-claude-implementation.md`
+- Jira project YES with epic and tasks (YES-2 through YES-8 all Done)
+- YES-2: Firebase setup (merged to dev)
+- YES-3: Cloud Functions - FCM push + cleanup (merged to dev)
+- YES-4/5/6: Flutter app with Terminal Elegance UI (merged to dev, PR #5)
+- YES-7: Mac/Linux install + hook scripts (merged to dev)
+- YES-8: Windows PowerShell install + hook scripts (merged to dev, fixes in PR #6)
+- YES-10: Jira ticket created for user data/response history (post-v1)
 
 ## What's Next
-1. YES-2: Firebase project setup + Firestore schema + security rules
-2. YES-3: Cloud Function: send FCM push on new request + cleanup expired
-3. YES-4: Flutter app: project scaffolding + Firebase integration
-4. YES-5: Flutter app: Pairing screen
-5. YES-6: Flutter app: Permission request screen + FCM handling
-6. YES-7: Install script + hook script (Mac/Linux)
-7. YES-8: Install script + hook script (Windows PowerShell)
-8. YES-9: End-to-end integration testing
+1. YES-9: End-to-end integration testing (blocked on Firebase Console setup)
+2. YES-10: User data/response history (post-v1)
 
 ## Known Blockers
-- None
+- Firebase project needs to be created in Firebase Console (manual step)
+- google-services.json and GoogleService-Info.plist needed before APK/IPA build
 
 ## Notes for Next Session
-- Start with YES-2 (Firebase setup) — everything else depends on it
-- Design doc has full architecture details
-- App is intentionally minimal: 2 screens, no history, no settings
+- Flutter installed via snap
+- All v1 code complete and merged to dev, just need Firebase Console setup and E2E testing
 - Jira project key: YES
+- Jira transition IDs: 11=To Do, 21=In Progress, 31=Done (no "In Review" status)
+- .gitignore `lib/` was changed to `firebase/functions/lib/` to stop ignoring `app/lib/`
+- UI: DM Sans + JetBrains Mono fonts, character-by-character pairing input, animated states
+- Centralized Log utility at app/lib/logger.dart (uses dart:developer)

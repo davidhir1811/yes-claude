@@ -93,7 +93,7 @@ Tickets should be parallelized in phases:
 - **Phase 4:** YES-9 (E2E testing, depends on everything)
 
 ### 7. After Merging
-1. Transition Jira ticket to "Done" (transition ID `41`)
+1. Transition Jira ticket to "Done" (transition ID `31`)
 2. Delete the feature branch (use `--delete-branch` on merge)
 3. Update `current_progress.md` if the next steps have changed
 4. Pull dev: `git checkout dev && git pull`
@@ -103,8 +103,7 @@ Tickets should be parallelized in phases:
 |----|-----------|
 | 11 | -> To Do |
 | 21 | -> In Progress |
-| 31 | -> In Review |
-| 41 | -> Done |
+| 31 | -> Done |
 
 ## Architecture
 
