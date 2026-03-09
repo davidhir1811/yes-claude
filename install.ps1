@@ -100,7 +100,7 @@ if (Test-Path $ClaudeSettings) {
     }
     $Existing = $Settings.hooks.permissionPrompt | Where-Object { $_.command -like "*yes-claude*" }
     if (-not $Existing) {
-        $Settings.hooks.permissionPrompt += $HookEntry
+        $Settings.hooks.permissionPrompt = [array]$Settings.hooks.permissionPrompt + $HookEntry
     }
     $Settings | ConvertTo-Json -Depth 10 | Set-Content $ClaudeSettings
 } else {

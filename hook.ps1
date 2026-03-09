@@ -14,7 +14,7 @@ $SecretToken = $Config.secretToken
 $FirebaseProject = $Config.firebaseProject
 $FirestoreBase = "https://firestore.googleapis.com/v1/projects/$FirebaseProject/databases/(default)/documents"
 
-$Input = $input | Out-String
+$Input = [Console]::In.ReadToEnd()
 
 try {
     $InputObj = $Input | ConvertFrom-Json
@@ -49,7 +49,12 @@ $Body = @{
     }
 } | ConvertTo-Json -Depth 10
 
-Invoke-RestMethod -Uri "$FirestoreBase/requests?documentId=$RequestId" -Method Post -ContentType "application/json" -Body $Body | Out-Null
+try {
+    Invoke-RestMethod -Uri "$FirestoreBase/requests?documentId=$RequestId" -Method Post -ContentType "application/json" -Body $Body | Out-Null
+} catch {
+    Write-Output '{"allow": false}'
+    exit 0
+}
 
 $Timeout = 300
 $Elapsed = 0
