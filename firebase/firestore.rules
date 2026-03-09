@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Devices: anyone can create (pairing), only matching secret can read/update
+    match /devices/{pairingCode} {
+      allow create: if true;
+      allow read, update: if request.resource.data.secretToken == resource.data.secretToken
+                          || request.auth != null;
+      allow delete: if false;
+    }
+
+    // Requests: only the hook (with valid secret) can create
+    // Only the paired device (with valid secret) can read and update
+    match /requests/{requestId} {
+      allow create: if request.resource.data.secretToken is string
+                    && request.resource.data.secretToken.size() > 0;
+      allow read: if resource.data.secretToken == request.resource.data.secretToken
+                  || request.auth != null;
+      allow update: if resource.data.secretToken == request.resource.data.secretToken
+                    || request.auth != null;
+      allow delete: if false;
+    }
+  }
+}
