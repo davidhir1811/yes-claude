@@ -30,6 +30,14 @@ export const onRequestCreated = functions.firestore
         return;
       }
 
+      if (data.secretToken !== deviceData.secretToken) {
+        functions.logger.error("Secret token mismatch", {
+          requestId,
+          deviceId: data.deviceId,
+        });
+        return;
+      }
+
       await messaging.send({
         token: deviceData.fcmToken,
         notification: {
@@ -72,17 +80,22 @@ export const cleanupExpiredRequests = functions.pubsub
       .get();
 
     if (expired.empty) {
+      functions.logger.info("No expired requests to clean up");
       return;
     }
 
-    const batch = db.batch();
-    expired.docs.forEach((doc) => {
-      batch.update(doc.ref, {
-        status: "expired",
-        response: "Deny",
+    try {
+      const batch = db.batch();
+      expired.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          status: "responded",
+          response: "Deny",
+        });
       });
-    });
 
-    await batch.commit();
-    functions.logger.info("Cleaned up expired requests", { count: expired.size });
+      await batch.commit();
+      functions.logger.info("Cleaned up expired requests", { count: expired.size });
+    } catch (error) {
+      functions.logger.error("Failed to clean up expired requests", { error });
+    }
   });
