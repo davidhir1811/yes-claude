@@ -1,8 +1,9 @@
 # Yes Claude... - Claude Code Instructions
 
 ## Project Overview
-"Yes Claude..." is an app + MCP server.
-TODO: Define what it does once brainstorming is complete.
+"Yes Claude..." is a mobile app (Flutter, Android + iOS) that lets you approve or deny Claude Code permission requests from your phone. When Claude Code needs permission to run a command, edit a file, etc., the app sends a push notification with the request and answer buttons.
+
+**Not an MCP server** — uses Claude Code's hook system to intercept permission prompts.
 
 ## Session Startup Checklist
 
@@ -29,8 +30,7 @@ gh pr list --repo davidhir1811/yes-claude --state open
 ### 3. Check Jira Board
 ```
 # All open tickets, ordered by status
-# TODO: Create Jira project for Yes Claude and update PROJECT_KEY
-JQL: project = PROJECT_KEY AND status != Done ORDER BY status ASC, key ASC
+JQL: project = YES AND status != Done ORDER BY status ASC, key ASC
 ```
 - **Check "In Progress" tickets** — these are claimed by another session. Do NOT work on them
 - **Check assignees** — if a ticket has an assignee, it's taken
@@ -86,10 +86,49 @@ gh pr create --base dev --title "TICKET-XXX: Description" --assignee davidhir181
 | 41 | -> Done |
 
 ## Architecture
-TODO: Define after brainstorming.
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────┐
+│ Claude Code  │     │    Firebase       │     │ Flutter App │
+│   Hook       │────>│  Firestore       │<────│  (Phone)    │
+│ (local CLI)  │<────│  Cloud Functions  │────>│             │
+│              │     │  FCM             │     │             │
+└─────────────┘     └──────────────────┘     └─────────────┘
+```
+
+- **Flutter app** — 2 screens: pairing + permission request with choice buttons
+- **Firebase** — Firestore (relay), Cloud Functions (push trigger), FCM (notifications)
+- **Local hook** — bash+curl (Mac/Linux), PowerShell (Windows)
+- **Install** — curl one-liner from GitHub
+
+### Data Flow
+1. Claude Code hook writes request doc to Firestore (status: pending)
+2. Cloud Function sends FCM push to paired device
+3. App shows request + buttons
+4. User taps → app updates Firestore doc (status: responded)
+5. Hook picks up response → unblocks Claude Code
+
+### Firestore Collections
+- `devices/{pairingCode}` — fcmToken, secretToken, createdAt, pairedAt
+- `requests/{requestId}` — deviceId, secretToken, command, choices, status, response, createdAt, expiresAt
+
+See full design: `docs/plans/2026-03-08-yes-claude-design.md`
 
 ## Build & Deploy
-TODO: Define after tech stack decision.
+
+### Tech Stack
+| Component | Tech |
+|-----------|------|
+| Mobile app | Flutter + FlutterFire |
+| Backend | Firebase (Firestore + Cloud Functions + FCM) |
+| Local hook | Bash + curl (Mac/Linux), PowerShell (Windows) |
+| Distribution | Install script on GitHub, app on Play Store + App Store |
+
+### Jira Project
+- **Key:** YES
+- **Epic:** YES-1 (Yes Claude v1)
+- **Tasks:** YES-2 through YES-9
+- **Build order:** YES-2 → YES-3 → YES-4 → YES-5 → YES-6 → YES-7 → YES-8 → YES-9
 
 ## Logging Conventions
 
@@ -146,4 +185,4 @@ Gemini CLI (`gemini -p "..."`) is installed. Use it as a **collaborative partner
 | **claude-code-setup** | Skill | On request | Recommend Claude Code automations |
 
 ## Domain Skills (`.claude/skills/`)
-TODO: Define project-specific skills after architecture is decided.
+TODO: Define after implementation begins.
