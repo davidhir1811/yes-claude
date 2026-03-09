@@ -21,10 +21,10 @@ curl -sSL "$HOOK_URL" -o "$INSTALL_DIR/hook.sh"
 chmod +x "$INSTALL_DIR/hook.sh"
 
 # Generate 6-character pairing code
-PAIRING_CODE=$(head -c 3 /dev/urandom | xxd -p | tr 'a-f' 'A-F' | head -c 6)
+PAIRING_CODE=$(od -An -tx1 -N3 /dev/urandom | tr -d ' \n' | tr 'a-f' 'A-F' | head -c 6)
 
 # Generate shared secret token
-SECRET_TOKEN=$(head -c 32 /dev/urandom | xxd -p)
+SECRET_TOKEN=$(od -An -tx1 -N32 /dev/urandom | tr -d ' \n')
 
 echo "Registering device..."
 CREATE_RESPONSE=$(curl -s -X POST \
@@ -89,19 +89,21 @@ mkdir -p "$(dirname "$CLAUDE_SETTINGS")"
 
 if [ -f "$CLAUDE_SETTINGS" ]; then
   if command -v python3 &> /dev/null; then
-    python3 -c "
-import json
-with open('$CLAUDE_SETTINGS', 'r') as f:
+    CLAUDE_SETTINGS="$CLAUDE_SETTINGS" INSTALL_DIR="$INSTALL_DIR" python3 -c "
+import json, os
+settings_path = os.environ['CLAUDE_SETTINGS']
+install_dir = os.environ['INSTALL_DIR']
+with open(settings_path, 'r') as f:
     settings = json.load(f)
-hook = {'type': 'command', 'command': '$INSTALL_DIR/hook.sh'}
+hook = {'type': 'command', 'command': install_dir + '/hook.sh'}
 if 'hooks' not in settings:
     settings['hooks'] = {}
 if 'permissionPrompt' not in settings['hooks']:
     settings['hooks']['permissionPrompt'] = []
-existing = [h for h in settings['hooks']['permissionPrompt'] if h.get('command') == '$INSTALL_DIR/hook.sh']
+existing = [h for h in settings['hooks']['permissionPrompt'] if h.get('command') == install_dir + '/hook.sh']
 if not existing:
     settings['hooks']['permissionPrompt'].append(hook)
-with open('$CLAUDE_SETTINGS', 'w') as f:
+with open(settings_path, 'w') as f:
     json.dump(settings, f, indent=2)
 "
   else

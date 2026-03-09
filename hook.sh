@@ -8,24 +8,46 @@ if [ ! -f "$CONFIG_FILE" ]; then
   exit 0
 fi
 
-DEVICE_ID=$(grep -o '"deviceId":"[^"]*"' "$CONFIG_FILE" | cut -d'"' -f4)
-SECRET_TOKEN=$(grep -o '"secretToken":"[^"]*"' "$CONFIG_FILE" | cut -d'"' -f4)
-FIREBASE_PROJECT=$(grep -o '"firebaseProject":"[^"]*"' "$CONFIG_FILE" | cut -d'"' -f4)
+eval "$(CONFIG_FILE="$CONFIG_FILE" python3 -c "
+import json, os
+c = json.load(open(os.environ['CONFIG_FILE']))
+print(f'DEVICE_ID={c[\"deviceId\"]}')
+print(f'SECRET_TOKEN={c[\"secretToken\"]}')
+print(f'FIREBASE_PROJECT={c[\"firebaseProject\"]}')
+")"
+
+if [ -z "$DEVICE_ID" ] || [ -z "$SECRET_TOKEN" ] || [ -z "$FIREBASE_PROJECT" ]; then
+  echo '{"allow": false}'
+  exit 0
+fi
+
 FIRESTORE_BASE="https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents"
 
 INPUT=$(cat)
 
-COMMAND=$(echo "$INPUT" | grep -o '"tool"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4 || echo "Unknown")
-TOOL_INPUT=$(echo "$INPUT" | grep -o '"input"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4 || echo "")
+eval "$(echo "$INPUT" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    tool = data.get('tool', 'Unknown')
+    inp = data.get('input', '')
+    if isinstance(inp, dict):
+        inp = json.dumps(inp, separators=(',', ':'))
+    print(f'COMMAND={tool}')
+    print(f'TOOL_INPUT={inp}')
+except:
+    print('COMMAND=Unknown')
+    print('TOOL_INPUT=')
+")"
 DISPLAY_COMMAND="${COMMAND}: ${TOOL_INPUT}"
 
-REQUEST_ID=$(head -c 8 /dev/urandom | xxd -p)
+REQUEST_ID=$(od -An -tx1 -N8 /dev/urandom | tr -d ' \n')
 
 # Cross-platform date: try GNU date first, fall back to BSD
 EXPIRES_AT=$(date -u -d '+5 minutes' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v+5M +%Y-%m-%dT%H:%M:%SZ)
 
 # Escape the command for JSON
-ESCAPED_COMMAND=$(echo "$DISPLAY_COMMAND" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g; s/\n/\\n/g')
+ESCAPED_COMMAND=$(echo "$DISPLAY_COMMAND" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip())[1:-1])")
 
 curl -s -X POST \
   "${FIRESTORE_BASE}/requests?documentId=${REQUEST_ID}" \
