@@ -55,21 +55,42 @@ git checkout -b feature/TICKET-XXX-description dev
 ### 6. PR & Review Protocol
 When opening a PR:
 - **Assignee:** David (the human reviewer)
-- **PR title format:** `TICKET-XXX: Short description`
-- **Do NOT merge your own PR** — another session or David reviews and merges
-- Exception: trivial doc-only changes can self-merge
+- **PR title format:** `YES-XXX: Short description`
+- **Use `gh` CLI** to create PRs and manage reviews
 
-**Review flow (solo dev with parallel Claude sessions):**
-1. Session A opens PR -> transitions Jira ticket to "In Review" (transition `31`)
+**Automated review flow (single session):**
+1. Push feature branch and open PR via `gh pr create --base dev`
+2. Run `/code-review` on the PR to get automated review
+3. If frontend changes: also run `/frontend-design` to review UI quality
+4. Fix any issues found, push, re-review until approved
+5. Merge via `gh pr merge --squash --delete-branch`
+6. Transition Jira ticket to "Done" (transition `41`)
+
+**Multi-session review flow:**
+1. Session A opens PR → transitions Jira ticket to "In Review" (transition `31`)
 2. Session A does NOT merge — it moves on to the next ticket
 3. Session B (or David) sees "In Review" tickets / open PRs during startup checklist
-4. Session B runs code review (e.g., `/code-review` plugin)
+4. Session B runs `/code-review`
 5. If approved: Session B merges the PR, transitions Jira to "Done" (`41`)
 6. If changes needed: Session B comments on the PR with feedback
 
 ```bash
-gh pr create --base dev --title "TICKET-XXX: Description" --assignee davidhir1811
+gh pr create --base dev --title "YES-XXX: Description" --assignee davidhir1811
 ```
+
+### Worktree Workflow
+- All feature work happens in git worktrees under `.wormtrees/`
+- Create worktree: `git worktree add .wormtrees/YES-XXX-description dev`
+- This allows parallel work on multiple tickets simultaneously
+- `.wormtrees/` is gitignored
+- Clean up after merge: `git worktree remove .wormtrees/YES-XXX-description`
+
+### Parallelization Strategy
+Tickets should be parallelized in phases:
+- **Phase 1:** YES-2 (Firebase setup) — everything depends on this
+- **Phase 2:** YES-3 + YES-4 + YES-7 + YES-8 (all depend only on YES-2, no file overlap)
+- **Phase 3:** YES-5 + YES-6 (depend on YES-4, separate screens)
+- **Phase 4:** YES-9 (E2E testing, depends on everything)
 
 ### 7. After Merging
 1. Transition Jira ticket to "Done" (transition ID `41`)

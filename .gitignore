@@ -36,6 +36,9 @@ venv/
 # Claude Code worktrees
 .claude/worktrees/
 
+# Project worktrees
+.wormtrees/
+
 # Test data (large files)
 test_data/
 
