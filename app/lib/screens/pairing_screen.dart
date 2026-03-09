@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../logger.dart';
 import '../theme.dart';
 
 class PairingScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class PairingScreen extends StatefulWidget {
 
 class _PairingScreenState extends State<PairingScreen>
     with SingleTickerProviderStateMixin {
+  static const _log = Log('PairingScreen');
   final _codeController = TextEditingController();
   final _focusNode = FocusNode();
   bool _loading = false;
@@ -84,12 +86,23 @@ class _PairingScreenState extends State<PairingScreen>
         'pairedAt': FieldValue.serverTimestamp(),
       });
 
+      final token = snapshot.data()?['secretToken'] as String?;
+      if (token == null) {
+        setState(() {
+          _error = 'Invalid device record.';
+          _loading = false;
+        });
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('deviceId', code);
-      await prefs.setString('secretToken', snapshot.data()!['secretToken']);
+      await prefs.setString('secretToken', token);
 
+      _log.info('Paired successfully with device $code');
       widget.onPaired();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _log.error('Pairing failed', e, stackTrace);
       setState(() {
         _error = 'Connection failed. Try again.';
         _loading = false;

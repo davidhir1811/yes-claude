@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../logger.dart';
 import '../theme.dart';
 
 class RequestScreen extends StatefulWidget {
@@ -13,11 +16,15 @@ class RequestScreen extends StatefulWidget {
 
 class _RequestScreenState extends State<RequestScreen>
     with TickerProviderStateMixin {
+  static const _log = Log('RequestScreen');
   String? _deviceId;
   bool _sent = false;
   String? _lastResponse;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  StreamSubscription? _fgSub;
+  StreamSubscription? _openSub;
+  StreamSubscription? _tokenRefreshSub;
 
   @override
   void initState() {
@@ -36,6 +43,9 @@ class _RequestScreenState extends State<RequestScreen>
   @override
   void dispose() {
     _pulseController.dispose();
+    _fgSub?.cancel();
+    _openSub?.cancel();
+    _tokenRefreshSub?.cancel();
     super.dispose();
   }
 
@@ -47,19 +57,47 @@ class _RequestScreenState extends State<RequestScreen>
   }
 
   void _setupFCM() {
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {});
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {});
+    _fgSub = FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      _log.info('FCM foreground message received');
+    });
+    _openSub = FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      _log.info('FCM message opened app');
+    });
+
+    // Handle FCM token refresh — update Firestore so pushes keep working
+    _tokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      _log.info('FCM token refreshed');
+      final prefs = await SharedPreferences.getInstance();
+      final deviceId = prefs.getString('deviceId');
+      if (deviceId != null) {
+        try {
+          await FirebaseFirestore.instance
+              .collection('devices')
+              .doc(deviceId)
+              .update({'fcmToken': newToken});
+          _log.info('Updated FCM token in Firestore');
+        } catch (e, stackTrace) {
+          _log.error('Failed to update FCM token', e, stackTrace);
+        }
+      }
+    });
   }
 
   Future<void> _respond(String requestId, String choice) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final secretToken = prefs.getString('secretToken');
+
       await FirebaseFirestore.instance
           .collection('requests')
           .doc(requestId)
           .update({
         'status': 'responded',
         'response': choice,
+        'secretToken': secretToken,
       });
+
+      _log.info('Responded to $requestId with $choice');
 
       setState(() {
         _sent = true;
@@ -70,7 +108,8 @@ class _RequestScreenState extends State<RequestScreen>
       if (mounted) {
         setState(() => _sent = false);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _log.error('Failed to respond to $requestId', e, stackTrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -111,6 +150,20 @@ class _RequestScreenState extends State<RequestScreen>
 
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              _log.error('Firestore stream error', snapshot.error!, snapshot.stackTrace);
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text(
+                    'Connection error. Check your internet.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
             }
 
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
