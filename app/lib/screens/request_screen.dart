@@ -66,6 +66,7 @@ class _RequestScreenState extends State<RequestScreen>
 
     // Handle FCM token refresh — update Firestore so pushes keep working
     _tokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      if (!mounted) return;
       _log.info('FCM token refreshed');
       final prefs = await SharedPreferences.getInstance();
       final deviceId = prefs.getString('deviceId');
@@ -87,6 +88,10 @@ class _RequestScreenState extends State<RequestScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       final secretToken = prefs.getString('secretToken');
+      if (secretToken == null) {
+        _log.error('secretToken missing from prefs', Exception('secretToken null'), StackTrace.current);
+        return;
+      }
 
       await FirebaseFirestore.instance
           .collection('requests')
