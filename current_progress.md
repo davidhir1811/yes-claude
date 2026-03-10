@@ -3,7 +3,7 @@
 ## Last Updated
 2026-03-10
 
-## What's Done
+## What's Done — v1
 - Design brainstorming complete (with Gemini consultation)
 - Design document: `docs/plans/2026-03-08-yes-claude-design.md`
 - Implementation plan: `docs/plans/2026-03-09-yes-claude-implementation.md`
@@ -13,11 +13,33 @@
 - YES-4/5/6: Flutter app with Terminal Elegance UI (merged to dev, PR #5)
 - YES-7: Mac/Linux install + hook scripts (merged to dev)
 - YES-8: Windows PowerShell install + hook scripts (merged to dev, fixes in PR #6)
-- YES-10: Jira ticket created for user data/response history (post-v1)
+
+## What's Done — v2 Planning
+- v2 Design document: `docs/plans/2026-03-10-yes-claude-v2-design.md`
+- v2 Implementation plan: `docs/plans/2026-03-10-yes-claude-v2-implementation.md`
+- Jira epic YES-11 with tasks YES-12 through YES-21
+
+## v2 Jira Tickets
+| Ticket | Summary | Phase | Status |
+|--------|---------|-------|--------|
+| YES-11 | v2 Epic | — | To Do |
+| YES-12 | Firebase Auth + User Model | 1 | In Progress |
+| YES-13 | Rate Limiting | 2 | To Do |
+| YES-14 | Multi-Session Support | 2 | To Do |
+| YES-15 | Web App + Firebase Hosting | 3 | To Do |
+| YES-16 | Hook Refactoring (Adapter Pattern) | 3 | To Do |
+| YES-17 | Response Validation | 2 | To Do |
+| YES-18 | History Archival | 3 | To Do |
+| YES-19 | Admin Scripts | 3 | To Do |
+| YES-20 | Upgrade Prompt UI | 3 | To Do |
+| YES-21 | E2E Testing v2 | 4 | To Do |
 
 ## What's Next
-1. YES-9: End-to-end integration testing (blocked on Firebase Console setup)
-2. YES-10: User data/response history (post-v1)
+1. YES-12: Firebase Auth + User Model (IN PROGRESS)
+2. Phase 2: YES-13 + YES-14 + YES-17 (parallel, after YES-12)
+3. Phase 3: YES-15 + YES-16 + YES-18 + YES-19 + YES-20 (parallel)
+4. Phase 4: YES-21 (E2E testing v2)
+5. YES-9: v1 E2E testing (blocked on Firebase Console setup)
 
 ## Known Blockers
 - Firebase project needs to be created in Firebase Console (manual step)
@@ -25,9 +47,9 @@
 
 ## Notes for Next Session
 - Flutter installed via snap
-- All v1 code complete and merged to dev, just need Firebase Console setup and E2E testing
+- All v1 code complete and merged to dev
 - Jira project key: YES
-- Jira transition IDs: 11=To Do, 21=In Progress, 31=Done (no "In Review" status)
+- Jira transition IDs: 11=To Do, 21=In Progress, 31=Done
 - .gitignore `lib/` was changed to `firebase/functions/lib/` to stop ignoring `app/lib/`
 - UI: DM Sans + JetBrains Mono fonts, character-by-character pairing input, animated states
 - Centralized Log utility at app/lib/logger.dart (uses dart:developer)
