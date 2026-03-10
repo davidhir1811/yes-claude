@@ -174,6 +174,50 @@ export const resetDailyCounters = functions.pubsub
     functions.logger.info("Reset daily counters", { count: users.size });
   });
 
+export const archiveToHistory = functions.firestore
+  .document("requests/{requestId}")
+  .onUpdate(async (change, context) => {
+    const before = change.before.data();
+    const after = change.after.data();
+    const requestId = context.params.requestId;
+
+    if (before.status !== "pending" || after.status !== "responded") return;
+    if (after.rateLimited) return;
+
+    try {
+      const userQuery = await db.collection("users")
+        .where("devices", "array-contains", after.deviceId)
+        .limit(1)
+        .get();
+
+      if (userQuery.empty) {
+        functions.logger.warn("No user found for device, skipping history", {
+          requestId,
+          deviceId: after.deviceId,
+        });
+        return;
+      }
+
+      const uid = userQuery.docs[0].id;
+
+      await db.collection("users").doc(uid).collection("history").doc(requestId).set({
+        command: after.command || "",
+        choices: after.choices || [],
+        response: after.response || "",
+        source: after.source || "claude",
+        sessionLabel: after.sessionLabel || "",
+        machineId: after.machineId || "",
+        deviceId: after.deviceId || "",
+        createdAt: after.createdAt || null,
+        respondedAt: admin.firestore.Timestamp.now(),
+      });
+
+      functions.logger.info("Archived request to history", { requestId, uid });
+    } catch (error) {
+      functions.logger.error("Failed to archive request to history", { requestId, error });
+    }
+  });
+
 export const resetMonthlyCounters = functions.pubsub
   .schedule("1 of month 00:00")
   .timeZone("UTC")
