@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../logger.dart';
 import '../theme.dart';
+import '../widgets/upgrade_prompt.dart';
 
 class RequestScreen extends StatefulWidget {
   const RequestScreen({super.key});
@@ -140,63 +142,104 @@ class _RequestScreenState extends State<RequestScreen>
 
     return Scaffold(
       body: SafeArea(
-        child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('requests')
-              .where('deviceId', isEqualTo: _deviceId)
-              .where('status', isEqualTo: 'pending')
-              .orderBy('createdAt', descending: true)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (_sent) {
-              return _buildSentConfirmation();
-            }
+        child: Stack(
+          children: [
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('requests')
+                  .where('deviceId', isEqualTo: _deviceId)
+                  .where('status', isEqualTo: 'pending')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (_sent) {
+                  return _buildSentConfirmation();
+                }
 
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            if (snapshot.hasError) {
-              _log.error('Firestore stream error', snapshot.error!, snapshot.stackTrace);
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Text(
-                    'Connection error. Check your internet.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              );
-            }
+                if (snapshot.hasError) {
+                  _log.error('Firestore stream error', snapshot.error!, snapshot.stackTrace);
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        'Connection error. Check your internet.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
 
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return _buildWaitingState();
-            }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return _buildWaitingState();
+                }
 
-            final docs = snapshot.data!.docs;
-            return ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              itemCount: docs.length,
-              itemBuilder: (context, index) {
-                final doc = docs[index];
-                final data = doc.data() as Map<String, dynamic>;
-                final command = data['command'] as String? ?? 'Unknown command';
-                final choices =
-                    List<String>.from(data['choices'] ?? ['Allow', 'Deny']);
-                final machineId = data['machineId'] as String?;
-                final sessionLabel = data['sessionLabel'] as String?;
+                final docs = snapshot.data!.docs;
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final doc = docs[index];
+                    final data = doc.data() as Map<String, dynamic>;
+                    final command = data['command'] as String? ?? 'Unknown command';
+                    final choices =
+                        List<String>.from(data['choices'] ?? ['Allow', 'Deny']);
+                    final machineId = data['machineId'] as String?;
+                    final sessionLabel = data['sessionLabel'] as String?;
 
-                return _buildRequestCard(
-                  doc.id,
-                  command,
-                  choices,
-                  machineId: machineId,
-                  sessionLabel: sessionLabel,
+                    return _buildRequestCard(
+                      doc.id,
+                      command,
+                      choices,
+                      machineId: machineId,
+                      sessionLabel: sessionLabel,
+                    );
+                  },
                 );
               },
-            );
-          },
+            ),
+
+            // Rate limit upgrade prompt overlay
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('requests')
+                  .where('deviceId', isEqualTo: _deviceId)
+                  .where('rateLimited', isEqualTo: true)
+                  .orderBy('createdAt', descending: true)
+                  .limit(1)
+                  .snapshots(),
+              builder: (context, rateLimitSnapshot) {
+                if (!rateLimitSnapshot.hasData ||
+                    rateLimitSnapshot.data!.docs.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                final doc = rateLimitSnapshot.data!.docs.first;
+                final data = doc.data() as Map<String, dynamic>;
+                final createdAt = data['createdAt'] as Timestamp?;
+                if (createdAt == null) return const SizedBox.shrink();
+
+                // Only show if rate-limited within the last hour
+                final age = DateTime.now().difference(createdAt.toDate());
+                if (age.inHours >= 1) return const SizedBox.shrink();
+
+                final user = FirebaseAuth.instance.currentUser;
+                final isAnonymous = user?.isAnonymous ?? true;
+                final tier = isAnonymous ? 'anonymous' : 'free';
+
+                return Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: UpgradePrompt(tier: tier),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
