@@ -23,23 +23,20 @@
 | Ticket | Summary | Phase | Status |
 |--------|---------|-------|--------|
 | YES-11 | v2 Epic | — | To Do |
-| YES-12 | Firebase Auth + User Model | 1 | In Progress |
-| YES-13 | Rate Limiting | 2 | To Do |
-| YES-14 | Multi-Session Support | 2 | To Do |
-| YES-15 | Web App + Firebase Hosting | 3 | To Do |
-| YES-16 | Hook Refactoring (Adapter Pattern) | 3 | To Do |
-| YES-17 | Response Validation | 2 | To Do |
-| YES-18 | History Archival | 3 | To Do |
-| YES-19 | Admin Scripts | 3 | To Do |
-| YES-20 | Upgrade Prompt UI | 3 | To Do |
+| YES-12 | Firebase Auth + User Model | 1 | Done (PR #7) |
+| YES-13 | Rate Limiting | 2 | Done (PR #9) |
+| YES-14 | Multi-Session Support | 2 | Done (PR #8) |
+| YES-15 | Web App + Firebase Hosting | 3 | Done (PR #14) |
+| YES-16 | Hook Refactoring (Adapter Pattern) | 3 | Done (PR #13) |
+| YES-17 | Response Validation | 2 | Done (no code — already in YES-12) |
+| YES-18 | History Archival | 3 | Done (PR #10) |
+| YES-19 | Admin Scripts | 3 | Done (PR #11) |
+| YES-20 | Upgrade Prompt UI | 3 | Done (PR #12) |
 | YES-21 | E2E Testing v2 | 4 | To Do |
 
 ## What's Next
-1. YES-12: Firebase Auth + User Model (IN PROGRESS)
-2. Phase 2: YES-13 + YES-14 + YES-17 (parallel, after YES-12)
-3. Phase 3: YES-15 + YES-16 + YES-18 + YES-19 + YES-20 (parallel)
-4. Phase 4: YES-21 (E2E testing v2)
-5. YES-9: v1 E2E testing (blocked on Firebase Console setup)
+1. YES-21: E2E Testing v2 (Phase 4 — all code complete, needs Firebase Console setup)
+2. YES-9: v1 E2E testing (blocked on Firebase Console setup)
 
 ## Known Blockers
 - Firebase project needs to be created in Firebase Console (manual step)
