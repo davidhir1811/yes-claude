@@ -13,18 +13,20 @@
 ## Dependency Graph
 
 ```
-Phase 1: YES-11 (Auth + User model)
+Epic: YES-11 (v2 Epic)
+
+Phase 1: YES-12 (Auth + User model)
     ↓
-Phase 2: YES-12 (Rate limiting) + YES-13 (Multi-session) + YES-16 (Response validation)  [parallel]
+Phase 2: YES-13 (Rate limiting) + YES-14 (Multi-session) + YES-17 (Response validation)  [parallel]
     ↓
-Phase 3: YES-14 (Web app) + YES-15 (Hook refactoring) + YES-17 (History) + YES-18 (Admin) + YES-19 (Upgrade UI)  [parallel]
+Phase 3: YES-15 (Web app) + YES-16 (Hook refactoring) + YES-18 (History) + YES-19 (Admin) + YES-20 (Upgrade UI)  [parallel]
     ↓
-Phase 4: YES-20 (E2E testing v2)
+Phase 4: YES-21 (E2E testing v2)
 ```
 
 ---
 
-### Task 1: YES-11 — Firebase Auth + User Model
+### Task 1: YES-12 — Firebase Auth + User Model
 
 **Files:**
 - Modify: `app/pubspec.yaml` — add firebase_auth, google_sign_in, sign_in_with_apple
@@ -154,12 +156,12 @@ seed().then(() => process.exit(0));
 
 **Step 7:** Commit:
 ```
-git add -A && git commit -m "feat(YES-11): Firebase Auth + user model + updated Firestore rules"
+git add -A && git commit -m "feat(YES-12): Firebase Auth + user model + updated Firestore rules"
 ```
 
 ---
 
-### Task 2: YES-12 — Rate Limiting
+### Task 2: YES-13 — Rate Limiting
 
 **Files:**
 - Modify: `firebase/functions/src/index.ts` — add rate limit check, counter increment, reset functions
@@ -248,12 +250,12 @@ export const resetMonthlyCounters = onSchedule('1 of month 00:00', async () => {
 
 **Step 3:** Commit:
 ```
-git commit -m "feat(YES-12): rate limiting in Cloud Functions with daily/monthly counters"
+git commit -m "feat(YES-13): rate limiting in Cloud Functions with daily/monthly counters"
 ```
 
 ---
 
-### Task 3: YES-13 — Multi-Session Support
+### Task 3: YES-14 — Multi-Session Support
 
 **Files:**
 - Modify: `hook.sh` — send sessionLabel, machineId, source
@@ -283,12 +285,12 @@ $Source = "claude"
 
 **Step 4:** Commit:
 ```
-git commit -m "feat(YES-13): multi-session support with session labels in hooks and app"
+git commit -m "feat(YES-14): multi-session support with session labels in hooks and app"
 ```
 
 ---
 
-### Task 4: YES-14 — Web App + Firebase Hosting
+### Task 4: YES-15 — Web App + Firebase Hosting
 
 **Files:**
 - Modify: `app/web/index.html` — add Firebase SDK config
@@ -367,12 +369,12 @@ echo "Done! Web app deployed."
 
 **Step 6:** Commit:
 ```
-git commit -m "feat(YES-14): Flutter web PWA with Firebase Hosting and FCM service worker"
+git commit -m "feat(YES-15): Flutter web PWA with Firebase Hosting and FCM service worker"
 ```
 
 ---
 
-### Task 5: YES-15 — Hook Refactoring (Adapter Pattern)
+### Task 5: YES-16 — Hook Refactoring (Adapter Pattern)
 
 **Files:**
 - Create: `hooks/core.sh` — shared Firestore API, polling, config
@@ -420,19 +422,19 @@ Save `CLI_TYPE` to config.json as `"cli": "claude"`.
 
 **Step 7:** Commit:
 ```
-git commit -m "feat(YES-15): refactor hooks into core + adapter pattern for multi-CLI support"
+git commit -m "feat(YES-16): refactor hooks into core + adapter pattern for multi-CLI support"
 ```
 
 ---
 
-### Task 6: YES-16 — Response Validation
+### Task 6: YES-17 — Response Validation
 
 **Files:**
 - Modify: `firebase/firestore.rules` — validate response in choices
 - Modify: `hook.sh` — validate response before returning
 - Modify: `hook.ps1` — same
 
-**Step 1:** Firestore rules already updated in YES-11. Verify the response validation rule:
+**Step 1:** Firestore rules already updated in YES-12. Verify the response validation rule:
 ```
 allow update: if request.resource.data.status == 'responded'
               && request.resource.data.response is string
@@ -451,12 +453,12 @@ esac
 
 **Step 3:** Commit:
 ```
-git commit -m "feat(YES-16): response validation at Firestore rules and hook layer"
+git commit -m "feat(YES-17): response validation at Firestore rules and hook layer"
 ```
 
 ---
 
-### Task 7: YES-17 — History Archival
+### Task 7: YES-18 — History Archival
 
 **Files:**
 - Modify: `firebase/functions/src/index.ts` — add onRequestUpdated trigger
@@ -497,12 +499,12 @@ export const archiveToHistory = onDocumentUpdated('requests/{requestId}', async 
 
 **Step 2:** Commit:
 ```
-git commit -m "feat(YES-17): archive responded requests to user history subcollection"
+git commit -m "feat(YES-18): archive responded requests to user history subcollection"
 ```
 
 ---
 
-### Task 8: YES-18 — Admin Scripts
+### Task 8: YES-19 — Admin Scripts
 
 **Files:**
 - Create: `scripts/admin.sh` — admin CLI for tier management
@@ -552,12 +554,12 @@ esac
 **Step 2:** Make executable and commit:
 ```
 chmod +x scripts/admin.sh
-git commit -m "feat(YES-18): admin CLI scripts for tier and user management"
+git commit -m "feat(YES-19): admin CLI scripts for tier and user management"
 ```
 
 ---
 
-### Task 9: YES-19 — Upgrade Prompt UI
+### Task 9: YES-20 — Upgrade Prompt UI
 
 **Files:**
 - Modify: `app/lib/screens/request_screen.dart` — show upgrade prompt when rate limited
@@ -571,12 +573,12 @@ git commit -m "feat(YES-18): admin CLI scripts for tier and user management"
 
 **Step 2:** Commit:
 ```
-git commit -m "feat(YES-19): upgrade prompt when rate limited"
+git commit -m "feat(YES-20): upgrade prompt when rate limited"
 ```
 
 ---
 
-### Task 10: YES-20 — E2E Testing v2
+### Task 10: YES-21 — E2E Testing v2
 
 **Depends on:** All above tasks + Firebase Console setup (manual)
 
@@ -596,7 +598,7 @@ git commit -m "feat(YES-19): upgrade prompt when rate limited"
 
 | Phase | Tickets | Dependencies |
 |-------|---------|-------------|
-| 1 | YES-11 (Auth + User model) | None — foundation for everything |
-| 2 | YES-12 + YES-13 + YES-16 | YES-11 (parallel with each other) |
-| 3 | YES-14 + YES-15 + YES-17 + YES-18 + YES-19 | YES-12 (parallel with each other) |
-| 4 | YES-20 (E2E) | All above + Firebase Console |
+| 1 | YES-12 (Auth + User model) | None — foundation for everything |
+| 2 | YES-13 + YES-14 + YES-17 | YES-12 (parallel with each other) |
+| 3 | YES-15 + YES-16 + YES-18 + YES-19 + YES-20 | YES-13 (parallel with each other) |
+| 4 | YES-21 (E2E) | All above + Firebase Console |
