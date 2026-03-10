@@ -5,9 +5,18 @@ set -euo pipefail
 # Usage: curl -sSL https://raw.githubusercontent.com/davidhir1811/yes-claude/main/install.sh | bash
 
 INSTALL_DIR="$HOME/.yes-claude"
-HOOK_URL="https://raw.githubusercontent.com/davidhir1811/yes-claude/main/hook.sh"
+REPO_BASE="https://raw.githubusercontent.com/davidhir1811/yes-claude/main"
 FIREBASE_PROJECT="yes-claude-XXXXX"
 FIRESTORE_BASE="https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents"
+
+# Parse --cli flag (default: claude)
+CLI="claude"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --cli) CLI="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
 
 echo "==================================="
 echo "  Yes Claude... Installer"
@@ -16,9 +25,12 @@ echo ""
 
 mkdir -p "$INSTALL_DIR"
 
-echo "Downloading hook script..."
-curl -sSL "$HOOK_URL" -o "$INSTALL_DIR/hook.sh"
-chmod +x "$INSTALL_DIR/hook.sh"
+echo "Downloading hook scripts (adapter: $CLI)..."
+mkdir -p "$INSTALL_DIR/hooks/adapters"
+curl -sSL "$REPO_BASE/hooks/hook.sh" -o "$INSTALL_DIR/hooks/hook.sh"
+curl -sSL "$REPO_BASE/hooks/core.sh" -o "$INSTALL_DIR/hooks/core.sh"
+curl -sSL "$REPO_BASE/hooks/adapters/${CLI}.sh" -o "$INSTALL_DIR/hooks/adapters/${CLI}.sh"
+chmod +x "$INSTALL_DIR/hooks/hook.sh" "$INSTALL_DIR/hooks/core.sh" "$INSTALL_DIR/hooks/adapters/${CLI}.sh"
 
 # Generate 6-character pairing code
 PAIRING_CODE=$(od -An -tx1 -N3 /dev/urandom | tr -d ' \n' | tr 'a-f' 'A-F' | head -c 6)
@@ -95,12 +107,12 @@ settings_path = os.environ['CLAUDE_SETTINGS']
 install_dir = os.environ['INSTALL_DIR']
 with open(settings_path, 'r') as f:
     settings = json.load(f)
-hook = {'type': 'command', 'command': install_dir + '/hook.sh'}
+hook = {'type': 'command', 'command': install_dir + '/hooks/hook.sh'}
 if 'hooks' not in settings:
     settings['hooks'] = {}
 if 'permissionPrompt' not in settings['hooks']:
     settings['hooks']['permissionPrompt'] = []
-existing = [h for h in settings['hooks']['permissionPrompt'] if h.get('command') == install_dir + '/hook.sh']
+existing = [h for h in settings['hooks']['permissionPrompt'] if h.get('command') == install_dir + '/hooks/hook.sh']
 if not existing:
     settings['hooks']['permissionPrompt'].append(hook)
 with open(settings_path, 'w') as f:
@@ -116,7 +128,7 @@ else
     "permissionPrompt": [
       {
         "type": "command",
-        "command": "$INSTALL_DIR/hook.sh"
+        "command": "$INSTALL_DIR/hooks/hook.sh"
       }
     ]
   }
@@ -127,4 +139,5 @@ fi
 echo ""
 echo "Installation complete!"
 echo "Config: $INSTALL_DIR/config.json"
-echo "Hook: $INSTALL_DIR/hook.sh"
+echo "Hook: $INSTALL_DIR/hooks/hook.sh"
+echo "Adapter: $CLI"

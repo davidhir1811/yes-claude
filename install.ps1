@@ -4,9 +4,17 @@
 $ErrorActionPreference = "Stop"
 
 $InstallDir = "$env:USERPROFILE\.yes-claude"
-$HookUrl = "https://raw.githubusercontent.com/davidhir1811/yes-claude/main/hook.ps1"
+$RepoBase = "https://raw.githubusercontent.com/davidhir1811/yes-claude/main"
 $FirebaseProject = "yes-claude-XXXXX"
 $FirestoreBase = "https://firestore.googleapis.com/v1/projects/$FirebaseProject/databases/(default)/documents"
+
+# Parse --cli flag (default: claude)
+$Cli = "claude"
+for ($i = 0; $i -lt $args.Count; $i++) {
+    if ($args[$i] -eq "--cli" -and ($i + 1) -lt $args.Count) {
+        $Cli = $args[$i + 1]
+    }
+}
 
 Write-Host "==================================="
 Write-Host "  Yes Claude... Installer"
@@ -15,8 +23,11 @@ Write-Host ""
 
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
-Write-Host "Downloading hook script..."
-Invoke-RestMethod -Uri $HookUrl -OutFile "$InstallDir\hook.ps1"
+Write-Host "Downloading hook scripts (adapter: $Cli)..."
+New-Item -ItemType Directory -Force -Path "$InstallDir\hooks\adapters" | Out-Null
+Invoke-RestMethod -Uri "$RepoBase/hooks/hook.ps1" -OutFile "$InstallDir\hooks\hook.ps1"
+Invoke-RestMethod -Uri "$RepoBase/hooks/core.ps1" -OutFile "$InstallDir\hooks\core.ps1"
+Invoke-RestMethod -Uri "$RepoBase/hooks/adapters/$Cli.ps1" -OutFile "$InstallDir\hooks\adapters\$Cli.ps1"
 
 $PairingCode = -join ((65..90) | Get-Random -Count 6 | ForEach-Object { [char]$_ })
 $SecretToken = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 64 | ForEach-Object { [char]$_ })
@@ -87,7 +98,7 @@ if (-not (Test-Path $ClaudeDir)) {
 
 $HookEntry = @{
     type = "command"
-    command = "powershell -File `"$InstallDir\hook.ps1`""
+    command = "powershell -File `"$InstallDir\hooks\hook.ps1`""
 }
 
 if (Test-Path $ClaudeSettings) {
@@ -114,4 +125,5 @@ if (Test-Path $ClaudeSettings) {
 Write-Host ""
 Write-Host "Installation complete!"
 Write-Host "Config: $InstallDir\config.json"
-Write-Host "Hook: $InstallDir\hook.ps1"
+Write-Host "Hook: $InstallDir\hooks\hook.ps1"
+Write-Host "Adapter: $Cli"
