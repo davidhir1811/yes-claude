@@ -25,6 +25,10 @@ try {
     $DisplayCommand = "Unknown command"
 }
 
+$SessionLabel = Split-Path -Leaf (Get-Location)
+$MachineId = $env:COMPUTERNAME
+$Source = "claude"
+
 $RequestId = -join ((48..57) + (97..102) | Get-Random -Count 16 | ForEach-Object { [char]$_ })
 $ExpiresAt = (Get-Date).AddMinutes(5).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 
@@ -44,6 +48,9 @@ $Body = @{
         }
         status = @{ stringValue = "pending" }
         response = @{ nullValue = $null }
+        sessionLabel = @{ stringValue = $SessionLabel }
+        machineId = @{ stringValue = $MachineId }
+        source = @{ stringValue = $Source }
         createdAt = @{ timestampValue = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") }
         expiresAt = @{ timestampValue = $ExpiresAt }
     }

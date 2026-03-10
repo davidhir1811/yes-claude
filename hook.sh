@@ -41,6 +41,10 @@ except:
 ")"
 DISPLAY_COMMAND="${COMMAND}: ${TOOL_INPUT}"
 
+SESSION_LABEL=$(basename "$PWD")
+MACHINE_ID=$(hostname)
+SOURCE="claude"
+
 REQUEST_ID=$(od -An -tx1 -N8 /dev/urandom | tr -d ' \n')
 
 # Cross-platform date: try GNU date first, fall back to BSD
@@ -64,6 +68,9 @@ curl -s -X POST \
       ]}},
       \"status\": {\"stringValue\": \"pending\"},
       \"response\": {\"nullValue\": null},
+      \"sessionLabel\": {\"stringValue\": \"${SESSION_LABEL}\"},
+      \"machineId\": {\"stringValue\": \"${MACHINE_ID}\"},
+      \"source\": {\"stringValue\": \"${SOURCE}\"},
       \"createdAt\": {\"timestampValue\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"},
       \"expiresAt\": {\"timestampValue\": \"${EXPIRES_AT}\"}
     }
