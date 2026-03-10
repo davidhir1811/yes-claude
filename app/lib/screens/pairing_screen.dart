@@ -66,6 +66,15 @@ class _PairingScreenState extends State<PairingScreen>
         return;
       }
 
+      final token = snapshot.data()?['secretToken'] as String?;
+      if (token == null) {
+        setState(() {
+          _error = 'Invalid device record.';
+          _loading = false;
+        });
+        return;
+      }
+
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission(
         alert: true,
@@ -86,15 +95,6 @@ class _PairingScreenState extends State<PairingScreen>
         'fcmToken': fcmToken,
         'pairedAt': FieldValue.serverTimestamp(),
       });
-
-      final token = snapshot.data()?['secretToken'] as String?;
-      if (token == null) {
-        setState(() {
-          _error = 'Invalid device record.';
-          _loading = false;
-        });
-        return;
-      }
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('deviceId', code);

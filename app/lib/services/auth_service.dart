@@ -35,11 +35,15 @@ class AuthService {
     try {
       await _auth.currentUser!.linkWithCredential(credential);
       _log.info('Linked anonymous account to Google');
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e, stackTrace) {
       if (e.code == 'credential-already-in-use') {
+        _log.info('Credential already in use, signing in with existing account');
         await _auth.signInWithCredential(credential);
-        _log.info('Signed in with existing Google account');
+        _log.info('Signed in with existing Google account: ${_auth.currentUser!.uid}');
+        // Ensure user doc exists for the switched-to account
+        await _ensureUserDoc(_auth.currentUser!.uid);
       } else {
+        _log.error('Failed to link Google credential', e, stackTrace);
         rethrow;
       }
     }
@@ -64,12 +68,22 @@ class AuthService {
   }
 
   Future<void> _updateTier(String tier) async {
-    await _db.collection('users').doc(uid).update({'tier': tier});
+    try {
+      await _db.collection('users').doc(uid).update({'tier': tier});
+    } catch (e, stackTrace) {
+      _log.error('Failed to update tier to $tier', e, stackTrace);
+      rethrow;
+    }
   }
 
   Future<void> linkDevice(String deviceId) async {
-    await _db.collection('users').doc(uid).update({
-      'devices': FieldValue.arrayUnion([deviceId]),
-    });
+    try {
+      await _db.collection('users').doc(uid).update({
+        'devices': FieldValue.arrayUnion([deviceId]),
+      });
+    } catch (e, stackTrace) {
+      _log.error('Failed to link device $deviceId', e, stackTrace);
+      rethrow;
+    }
   }
 }

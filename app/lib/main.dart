@@ -15,7 +15,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await AuthService.instance.ensureSignedIn();
+  try {
+    await AuthService.instance.ensureSignedIn();
+  } catch (e) {
+    // Auth may fail offline on first launch — app still works, will retry on next action
+    debugPrint('Auth sign-in deferred: $e');
+  }
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(const YesClaudeApp());
 }
