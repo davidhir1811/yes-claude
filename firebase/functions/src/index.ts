@@ -38,6 +38,59 @@ export const onRequestCreated = functions.firestore
         return;
       }
 
+      // Rate limit check
+      const userQuery = await db.collection("users")
+        .where("devices", "array-contains", data.deviceId)
+        .limit(1)
+        .get();
+
+      if (!userQuery.empty) {
+        const userDoc = userQuery.docs[0];
+        const userData = userDoc.data();
+        const tier = userData.tier || "anonymous";
+
+        const tierConfig = await db.collection("config").doc("tiers").get();
+        const limits = tierConfig.data()?.[tier];
+
+        if (limits) {
+          const now = new Date();
+          let isOverLimit = false;
+
+          if (limits.dailyLimit !== undefined) {
+            const resetAt = userData.dailyResetAt?.toDate() || new Date(0);
+            const todayStart = new Date(now.toISOString().split("T")[0]);
+            const count = resetAt < todayStart ? 0 : userData.dailyCount || 0;
+            isOverLimit = count >= limits.dailyLimit;
+          }
+          if (limits.monthlyLimit !== undefined) {
+            const resetAt = userData.monthlyResetAt?.toDate() || new Date(0);
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const count = resetAt < monthStart ? 0 : userData.monthlyCount || 0;
+            isOverLimit = count >= limits.monthlyLimit;
+          }
+
+          if (isOverLimit) {
+            await snap.ref.update({
+              status: "responded",
+              response: "Deny",
+              rateLimited: true,
+            });
+            functions.logger.info("Rate limited request", {
+              requestId,
+              deviceId: data.deviceId,
+              tier,
+            });
+            return;
+          }
+
+          // Increment counters
+          await userDoc.ref.update({
+            dailyCount: admin.firestore.FieldValue.increment(1),
+            monthlyCount: admin.firestore.FieldValue.increment(1),
+          });
+        }
+      }
+
       await messaging.send({
         token: deviceData.fcmToken,
         notification: {
@@ -98,4 +151,46 @@ export const cleanupExpiredRequests = functions.pubsub
     } catch (error) {
       functions.logger.error("Failed to clean up expired requests", { error });
     }
+  });
+
+export const resetDailyCounters = functions.pubsub
+  .schedule("every day 00:00")
+  .timeZone("UTC")
+  .onRun(async () => {
+    const users = await db.collection("users").get();
+    if (users.empty) {
+      functions.logger.info("No users to reset daily counters");
+      return;
+    }
+
+    const batch = db.batch();
+    for (const doc of users.docs) {
+      batch.update(doc.ref, {
+        dailyCount: 0,
+        dailyResetAt: admin.firestore.Timestamp.now(),
+      });
+    }
+    await batch.commit();
+    functions.logger.info("Reset daily counters", { count: users.size });
+  });
+
+export const resetMonthlyCounters = functions.pubsub
+  .schedule("1 of month 00:00")
+  .timeZone("UTC")
+  .onRun(async () => {
+    const users = await db.collection("users").get();
+    if (users.empty) {
+      functions.logger.info("No users to reset monthly counters");
+      return;
+    }
+
+    const batch = db.batch();
+    for (const doc of users.docs) {
+      batch.update(doc.ref, {
+        monthlyCount: 0,
+        monthlyResetAt: admin.firestore.Timestamp.now(),
+      });
+    }
+    await batch.commit();
+    functions.logger.info("Reset monthly counters", { count: users.size });
   });
