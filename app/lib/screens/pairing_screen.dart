@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../logger.dart';
+import '../services/auth_service.dart';
 import '../theme.dart';
 
 class PairingScreen extends StatefulWidget {
@@ -99,6 +100,7 @@ class _PairingScreenState extends State<PairingScreen>
       await prefs.setString('deviceId', code);
       await prefs.setString('secretToken', token);
 
+      await AuthService.instance.linkDevice(code);
       _log.info('Paired successfully with device $code');
       widget.onPaired();
     } catch (e, stackTrace) {

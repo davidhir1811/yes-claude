@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/pairing_screen.dart';
 import 'screens/request_screen.dart';
+import 'services/auth_service.dart';
 import 'theme.dart';
 
 @pragma('vm:entry-point')
@@ -14,6 +15,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await AuthService.instance.ensureSignedIn();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(const YesClaudeApp());
 }
