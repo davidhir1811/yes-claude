@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import '../logger.dart';
 import '../services/auth_service.dart';
@@ -19,11 +20,14 @@ class _UpgradePromptState extends State<UpgradePrompt> {
 
   bool get _isAnonymous => widget.tier == 'anonymous';
 
-  Future<void> _signInWithGoogle() async {
+  bool get _isApplePlatform =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  Future<void> _signIn() async {
     setState(() => _loading = true);
     try {
-      await AuthService.instance.linkWithGoogle();
-      _log.info('Google sign-in successful from upgrade prompt');
+      await AuthService.instance.linkAccount();
+      _log.info('Sign-in successful from upgrade prompt');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -37,7 +41,7 @@ class _UpgradePromptState extends State<UpgradePrompt> {
         );
       }
     } on FirebaseAuthException catch (e, stackTrace) {
-      _log.error('Google sign-in failed', e, stackTrace);
+      _log.error('Sign-in failed', e, stackTrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -51,7 +55,7 @@ class _UpgradePromptState extends State<UpgradePrompt> {
         );
       }
     } catch (e, stackTrace) {
-      _log.error('Google sign-in failed', e, stackTrace);
+      _log.error('Sign-in failed', e, stackTrace);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -104,7 +108,7 @@ class _UpgradePromptState extends State<UpgradePrompt> {
               width: double.infinity,
               height: 52,
               child: FilledButton.icon(
-                onPressed: _loading ? null : _signInWithGoogle,
+                onPressed: _loading ? null : _signIn,
                 icon: _loading
                     ? const SizedBox(
                         width: 20,
@@ -114,8 +118,12 @@ class _UpgradePromptState extends State<UpgradePrompt> {
                           color: Color(0xFF1A1A1A),
                         ),
                       )
-                    : const Icon(Icons.login_rounded),
-                label: Text(_loading ? 'Signing in...' : 'Sign in with Google'),
+                    : Icon(_isApplePlatform ? Icons.apple : Icons.login_rounded),
+                label: Text(_loading
+                    ? 'Signing in...'
+                    : _isApplePlatform
+                        ? 'Sign in with Apple'
+                        : 'Sign in with Google'),
               ),
             )
           else
