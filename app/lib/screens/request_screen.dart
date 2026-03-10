@@ -146,7 +146,6 @@ class _RequestScreenState extends State<RequestScreen>
               .where('deviceId', isEqualTo: _deviceId)
               .where('status', isEqualTo: 'pending')
               .orderBy('createdAt', descending: true)
-              .limit(1)
               .snapshots(),
           builder: (context, snapshot) {
             if (_sent) {
@@ -175,13 +174,28 @@ class _RequestScreenState extends State<RequestScreen>
               return _buildWaitingState();
             }
 
-            final doc = snapshot.data!.docs.first;
-            final data = doc.data() as Map<String, dynamic>;
-            final command = data['command'] as String? ?? 'Unknown command';
-            final choices =
-                List<String>.from(data['choices'] ?? ['Allow', 'Deny']);
+            final docs = snapshot.data!.docs;
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              itemCount: docs.length,
+              itemBuilder: (context, index) {
+                final doc = docs[index];
+                final data = doc.data() as Map<String, dynamic>;
+                final command = data['command'] as String? ?? 'Unknown command';
+                final choices =
+                    List<String>.from(data['choices'] ?? ['Allow', 'Deny']);
+                final machineId = data['machineId'] as String?;
+                final sessionLabel = data['sessionLabel'] as String?;
 
-            return _buildRequestCard(doc.id, command, choices);
+                return _buildRequestCard(
+                  doc.id,
+                  command,
+                  choices,
+                  machineId: machineId,
+                  sessionLabel: sessionLabel,
+                );
+              },
+            );
           },
         ),
       ),
@@ -277,47 +291,50 @@ class _RequestScreenState extends State<RequestScreen>
   }
 
   Widget _buildRequestCard(
-      String requestId, String command, List<String> choices) {
+    String requestId,
+    String command,
+    List<String> choices, {
+    String? machineId,
+    String? sessionLabel,
+  }) {
+    final hasSessionContext = machineId != null || sessionLabel != null;
+
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Spacer(flex: 2),
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: YesClaudeTheme.ember.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: YesClaudeTheme.ember.withValues(alpha: 0.25),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+          // Session context header (only if fields are present)
+          if (hasSessionContext) ...[
+            Row(
               children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: YesClaudeTheme.ember,
-                  ),
+                Icon(
+                  Icons.computer_rounded,
+                  size: 14,
+                  color: YesClaudeTheme.textSecondary,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Permission Request',
-                  style: TextStyle(
-                    color: YesClaudeTheme.ember,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    [machineId, sessionLabel]
+                        .where((s) => s != null && s.isNotEmpty)
+                        .join(' \u00b7 '),
+                    style: YesClaudeTheme.monoStyle(
+                      fontSize: 11,
+                      color: YesClaudeTheme.textSecondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 28),
+            const SizedBox(height: 8),
+            Divider(
+              height: 1,
+              color: YesClaudeTheme.surfaceHighest,
+            ),
+            const SizedBox(height: 12),
+          ],
 
           // Command display
           Container(
@@ -358,7 +375,7 @@ class _RequestScreenState extends State<RequestScreen>
               ],
             ),
           ),
-          const SizedBox(height: 36),
+          const SizedBox(height: 16),
 
           // Choice buttons
           ...choices.map((choice) {
@@ -367,10 +384,10 @@ class _RequestScreenState extends State<RequestScreen>
                 choice.toLowerCase().contains('always');
 
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 10),
               child: SizedBox(
                 width: double.infinity,
-                height: 56,
+                height: 52,
                 child: isDeny
                     ? OutlinedButton(
                         onPressed: () => _respond(requestId, choice),
@@ -390,7 +407,6 @@ class _RequestScreenState extends State<RequestScreen>
               ),
             );
           }),
-          const Spacer(flex: 3),
         ],
       ),
     );
